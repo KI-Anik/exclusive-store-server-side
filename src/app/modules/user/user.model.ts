@@ -12,7 +12,7 @@ const authProviderSchema = new Schema<IAuthProvider>({
 const userSchema = new Schema<IUser>({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String },
+    password: { type: String, select: false },
     phone: { type: String },
     picture: { type: String },
     address: { type: String },
@@ -33,7 +33,13 @@ const userSchema = new Schema<IUser>({
     }
 }, {
     timestamps: true,
-    versionKey: false
+    versionKey: false,
+   
+    toJSON: {
+        transform(doc, ret){
+            delete ret.password
+        } //automatically removes the password field whenever a user document is converted into JSON format.
+    }
 })
 
 export const User = model<IUser>("User", userSchema)
