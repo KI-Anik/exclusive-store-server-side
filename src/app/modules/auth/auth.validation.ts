@@ -2,6 +2,7 @@ import z from "zod";
 
 
 export const loginZodSchema = z.object({
+    // inside body because of validateTRequest.ts
     body: z.object({
         email: z
             .string()

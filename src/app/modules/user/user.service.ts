@@ -4,9 +4,10 @@ import bcrypt from 'bcryptjs';
 import { IAuthProvider, IUser } from "./user.interface";
 import { User } from "./user.model";
 import { envVars } from "../../config/env";
+import { sendWelcomeEmail } from "../../nodemailer/sendWelcomeEmail";
 
 const createUser = async (payload: Partial<IUser>) => {
-    const { email, password, ...rest } = payload
+    const { email, password, name, ...rest } = payload
 
     const isUserExist = await User.findOne({ email })
     if (isUserExist) {
@@ -23,9 +24,18 @@ const createUser = async (payload: Partial<IUser>) => {
     const user = await User.create({
         email,
         password: hashedPassword,
+        name,
         auths: [authProvider],
         ...rest
     })
+
+    if (user.email && user.name) {
+        // We don't want to block the response if the email fails to send.
+        // Log the error for debugging, but let the user registration succeed.
+        sendWelcomeEmail(user.email, user.name)
+            .catch(err => console.error(`Failed to send welcome email to ${user.email}`, err));
+    }
+
     return user
 }
 
