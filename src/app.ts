@@ -2,6 +2,8 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import express, { Request, Response } from 'express';
 import { router } from './routes';
+import globalErrorHandler from './app/middleware/globalErrorHandler';
+import notFound from './app/middleware/notFound';
 
 const app = express()
 
@@ -16,5 +18,8 @@ app.get('/', async(req:Request, res: Response)=>{
         message: 'Welcome to exclusive-store server'
     })
 })
+
+app.use(globalErrorHandler)
+app.use(notFound) //route
 
 export default app
