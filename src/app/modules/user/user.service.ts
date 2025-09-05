@@ -6,6 +6,7 @@ import { User } from "./user.model";
 import { envVars } from "../../config/env";
 import { sendWelcomeEmail } from "../../nodemailer/sendWelcomeEmail";
 import { JwtPayload } from "jsonwebtoken";
+import { createUserToken } from "../../utils/userTokens";
 
 const createUser = async (payload: Partial<IUser>) => {
     const { email, password, name, ...rest } = payload
@@ -37,9 +38,19 @@ const createUser = async (payload: Partial<IUser>) => {
             .catch(err => console.error(`Failed to send welcome email to ${user.email}`, err));
     }
 
-    return user
-}
+    // Generate tokens for auto-login
+    const userTokens = createUserToken(user);
 
+    // Ensure the password is not sent in the response
+    const userObject = user.toObject();
+    delete userObject.password;
+
+    return {
+        user: userObject,
+        accessToken: userTokens.accessToken,
+        refreshToken: userTokens.refreshToken,
+    };
+}
 
 const updateUser = async (userId: string, payload: Partial<IUser>, decodedToken: JwtPayload) => {
 
@@ -79,8 +90,6 @@ const updateUser = async (userId: string, payload: Partial<IUser>, decodedToken:
     const newUpdatedUser = await User.findByIdAndUpdate(userId, payload, { new: true, runValidators: true })
     return newUpdatedUser
 }
-
-
 
 const getAllUsers = async () => {
     const users = await User.find({})

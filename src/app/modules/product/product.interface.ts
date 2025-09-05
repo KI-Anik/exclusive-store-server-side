@@ -10,4 +10,5 @@ export interface IProduct {
   specification: string[];
   availability: boolean;
   rating: number;
+  quantityInStock: number;
 }

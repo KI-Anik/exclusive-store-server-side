@@ -3,17 +3,30 @@ import { Request, Response } from "express";
 import { catchAsync } from "../../utils/catchAsync";
 import { UserService } from "./user.service";
 import { sendResponse } from "../../utils/sendResponse";
+import { envVars } from '../../config/env';
 
 
 const createUser = catchAsync(async (req: Request, res: Response) => {
-    const user = await UserService.createUser(req.body)
+    const { user, accessToken, refreshToken } = await UserService.createUser(
+        req.body,
+    );
+
+    // Set refresh token in a secure, httpOnly cookie for auto-login
+    res.cookie('refreshToken', refreshToken, {
+        httpOnly: true,
+        secure: envVars.NODE_ENV === 'production',
+        sameSite: 'strict',
+    });
 
     sendResponse(res, {
         statusCode: httpStatus.CREATED,
         success: true,
-        message: 'user created successfully',
-        data: user
-    })
+        message: 'User registered and logged in successfully',
+        data: {
+            user,
+            accessToken,
+        },
+    });
 })
 
 const updateUser = catchAsync(async (req: Request, res: Response) => {

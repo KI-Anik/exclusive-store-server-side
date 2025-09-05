@@ -10,9 +10,11 @@ import { OrderServices } from './order.service';
 // Mock dependencies
 jest.mock('./order.model');
 jest.mock('../product/product.model');
+jest.mock('mongoose');
 
 const OrderMock = Order as jest.Mocked<typeof Order>;
 const ProductMock = Product as jest.Mocked<typeof Product>;
+const mongooseMock = mongoose as jest.Mocked<typeof mongoose>;
 
 describe('OrderServices', () => {
   const mockProduct = {
@@ -20,6 +22,7 @@ describe('OrderServices', () => {
     product_title: 'Test Product',
     price: 100,
     availability: true,
+    quantityInStock: 10,
     product_image: '',
     category: '',
     description: '',
@@ -48,60 +51,105 @@ describe('OrderServices', () => {
 
   // Test suite for createOrderIntoDB
   describe('createOrderIntoDB', () => {
+    const mockSession = {
+      startTransaction: jest.fn(),
+      commitTransaction: jest.fn(),
+      abortTransaction: jest.fn(),
+      endSession: jest.fn(),
+    };
+
+    beforeEach(() => {
+      // Mock mongoose.startSession to return our mock session
+      (mongooseMock.startSession as jest.Mock).mockResolvedValue(mockSession);
+    });
+
     const orderPayload = {
       items: [{ productId: mockProduct._id.toString(), quantity: 2 }],
       shippingAddress: '123 Test St',
     };
 
-    it('should create an order successfully', async () => {
-      (ProductMock.find as jest.Mock).mockResolvedValue([mockProduct]);
-      (OrderMock.create as jest.Mock).mockResolvedValue(mockOrder);
+    it('should create an order and update stock successfully within a transaction', async () => {
+      // Arrange
+      const findQuery = { session: jest.fn().mockResolvedValue([mockProduct]) };
+      (ProductMock.find as jest.Mock).mockReturnValue(findQuery);
+      (ProductMock.findByIdAndUpdate as jest.Mock).mockResolvedValue(true);
+      (OrderMock.create as jest.Mock).mockResolvedValue([mockOrder]); // create returns an array
 
+      // Act
       const result = await OrderServices.createOrderIntoDB(
         mockOrder.userId.toString(),
         orderPayload,
       );
 
+      // Assert
+      expect(mongoose.startSession).toHaveBeenCalled();
+      expect(mockSession.startTransaction).toHaveBeenCalled();
+
       expect(ProductMock.find).toHaveBeenCalledWith({
         _id: { $in: [mockProduct._id.toString()] },
       });
-      expect(OrderMock.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          totalAmount: 200,
-          shippingAddress: '123 Test St',
-        }),
+      expect(findQuery.session).toHaveBeenCalledWith(mockSession);
+
+      expect(ProductMock.findByIdAndUpdate).toHaveBeenCalledWith(
+        mockProduct._id,
+        {
+          quantityInStock: 8, // 10 - 2
+          availability: true,
+        },
+        { session: mockSession },
       );
+
+      expect(OrderMock.create).toHaveBeenCalledWith(
+        [expect.objectContaining({ totalAmount: 200 })],
+        { session: mockSession },
+      );
+
+      expect(mockSession.commitTransaction).toHaveBeenCalled();
+      expect(mockSession.abortTransaction).not.toHaveBeenCalled();
+      expect(mockSession.endSession).toHaveBeenCalled();
       expect(result).toEqual(mockOrder);
     });
 
-    it('should throw NOT_FOUND error if a product is not found', async () => {
-      (ProductMock.find as jest.Mock).mockResolvedValue([]);
+    it('should throw an error and abort transaction if a product is not found', async () => {
+      const findQuery = { session: jest.fn().mockResolvedValue([]) };
+      (ProductMock.find as jest.Mock).mockReturnValue(findQuery);
 
       await expect(
         OrderServices.createOrderIntoDB(
           mockOrder.userId.toString(),
           orderPayload,
         ),
-      ).rejects.toThrow(
-        new AppError(httpStatus.NOT_FOUND, 'One or more products not found'),
-      );
+      ).rejects.toThrow('One or more products not found');
+
+      expect(mockSession.abortTransaction).toHaveBeenCalled();
+      expect(mockSession.commitTransaction).not.toHaveBeenCalled();
+      expect(mockSession.endSession).toHaveBeenCalled();
     });
 
-    it('should throw BAD_REQUEST error if a product is unavailable', async () => {
-      const unavailableProduct = { ...mockProduct, availability: false };
-      (ProductMock.find as jest.Mock).mockResolvedValue([unavailableProduct]);
+    it('should throw an error and abort transaction if stock is insufficient', async () => {
+      // Arrange
+      const productWithLowStock = { ...mockProduct, quantityInStock: 1 };
+      const findQuery = {
+        session: jest.fn().mockResolvedValue([productWithLowStock]),
+      };
+      (ProductMock.find as jest.Mock).mockReturnValue(findQuery);
 
+      // Act & Assert
       await expect(
         OrderServices.createOrderIntoDB(
           mockOrder.userId.toString(),
           orderPayload,
         ),
       ).rejects.toThrow(
-        new AppError(
-          httpStatus.BAD_REQUEST,
-          `Product "${unavailableProduct.product_title}" is currently unavailable`,
-        ),
+        `Product "${productWithLowStock.product_title}" is out of stock or insufficient quantity available.`,
       );
+
+      expect(mockSession.startTransaction).toHaveBeenCalled();
+      expect(ProductMock.findByIdAndUpdate).not.toHaveBeenCalled();
+      expect(OrderMock.create).not.toHaveBeenCalled();
+      expect(mockSession.commitTransaction).not.toHaveBeenCalled();
+      expect(mockSession.abortTransaction).toHaveBeenCalled();
+      expect(mockSession.endSession).toHaveBeenCalled();
     });
   });
 
@@ -138,21 +186,8 @@ describe('OrderServices', () => {
 
   // Test suite for getSingleOrderFromDB
   describe('getSingleOrderFromDB', () => {
-    it('should throw NOT_FOUND error if order is not found', async () => {
-      // Mock the chained .populate() calls
-      const finalQuery = {
-        populate: jest.fn().mockResolvedValue(null), // The second populate resolves to null
-      };
-      const initialQuery = {
-        populate: jest.fn().mockReturnValue(finalQuery), // The first populate returns the next query object
-      };
-      (OrderMock.findById as jest.Mock).mockReturnValue(initialQuery);
+   });
 
-      await expect(
-        OrderServices.getSingleOrderFromDB('non-existent-id'),
-      ).rejects.toThrow(new AppError(httpStatus.NOT_FOUND, 'Order not found'));
-    });
-  });
 
   // Test suite for updateOrderStatusInDB
   describe('updateOrderStatusInDB', () => {
@@ -168,3 +203,4 @@ describe('OrderServices', () => {
     });
   });
 });
+

@@ -1,7 +1,5 @@
 import { Router } from "express";
 import { AuthControllers } from "./auth.controller";
-import { validateRequest } from "../../middleware/validateRequest";
-import { loginZodSchema } from "./auth.validation";
 import { checkAuth } from "../../middleware/checkAuth";
 import { Role } from "../user/user.interface";
 

@@ -4,6 +4,7 @@ import { JwtPayload } from 'jsonwebtoken';
 import AppError from '../../errorHelpers/AppError';
 import { sendWelcomeEmail } from '../../nodemailer/sendWelcomeEmail';
 import { IsActive, IUser, Role } from './user.interface';
+import { createUserToken } from '../../utils/userTokens';
 import { User } from './user.model';
 import { UserService } from './user.service';
 
@@ -11,11 +12,15 @@ import { UserService } from './user.service';
 jest.mock('./user.model');
 jest.mock('bcryptjs');
 jest.mock('../../nodemailer/sendWelcomeEmail');
+jest.mock('../../utils/userTokens');
 
 const UserMock = User as jest.Mocked<typeof User>;
 const bcryptMock = bcrypt as jest.Mocked<typeof bcrypt>;
 const sendWelcomeEmailMock = sendWelcomeEmail as jest.MockedFunction<
   typeof sendWelcomeEmail
+>;
+const createUserTokenMock = createUserToken as jest.MockedFunction<
+  typeof createUserToken
 >;
 
 describe('UserServices', () => {
@@ -41,29 +46,52 @@ describe('UserServices', () => {
 
   // Test suite for createUser
   describe('createUser', () => {
-    it('should create a user successfully and send a welcome email', async () => {
-      (UserMock.findOne as jest.Mock).mockResolvedValue(null);
-      (bcryptMock.hash as jest.Mock).mockResolvedValue('hashedPassword');
-      (UserMock.create as jest.Mock).mockResolvedValue(mockUser);
-      sendWelcomeEmailMock.mockResolvedValue();
-
-      const result = await UserService.createUser({
+    it('should create a user, generate tokens for auto-login, and send a welcome email', async () => {
+      // Arrange
+      const mockTokens = {
+        accessToken: 'mockAccessToken',
+        refreshToken: 'mockRefreshToken',
+      };
+      const userPayload = {
         name: mockUser.name,
         email: mockUser.email,
         password: mockUser.password,
-      });
+      };
 
+      // Mock the Mongoose document methods that are used in the service
+      const mockMongooseUser = {
+        ...mockUser,
+        toObject: () => ({ ...mockUser }),
+      };
+
+      (UserMock.findOne as jest.Mock).mockResolvedValue(null);
+      (bcryptMock.hash as jest.Mock).mockResolvedValue('hashedPassword');
+      (UserMock.create as jest.Mock).mockResolvedValue(mockMongooseUser);
+      sendWelcomeEmailMock.mockResolvedValue();
+      createUserTokenMock.mockReturnValue(mockTokens);
+
+      // Act
+      const result = await UserService.createUser(userPayload);
+
+      // Assert
       expect(UserMock.findOne).toHaveBeenCalledWith({ email: mockUser.email });
       expect(bcryptMock.hash).toHaveBeenCalledWith(
         mockUser.password,
         expect.any(Number),
       );
       expect(UserMock.create).toHaveBeenCalled();
-      expect(sendWelcomeEmailMock).toHaveBeenCalledWith(
-        mockUser.email,
-        mockUser.name,
-      );
-      expect(result).toEqual(mockUser);
+      expect(createUserTokenMock).toHaveBeenCalledWith(mockMongooseUser);
+      expect(sendWelcomeEmailMock).toHaveBeenCalledWith(mockUser.email, mockUser.name);
+
+      // The service deletes the password from the user object before returning
+      const expectedUserObject = { ...mockUser };
+      delete expectedUserObject.password;
+
+      expect(result).toEqual({
+        user: expectedUserObject,
+        accessToken: mockTokens.accessToken,
+        refreshToken: mockTokens.refreshToken,
+      });
     });
 
     it('should throw a BAD_REQUEST error if user already exists', async () => {

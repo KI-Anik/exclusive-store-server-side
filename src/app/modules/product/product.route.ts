@@ -10,6 +10,7 @@ import { Role } from '../user/user.interface';
 
 const router = Router();
 
+
 router.post(
   '/',
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),

@@ -2,6 +2,7 @@ import httpStatus from 'http-status-codes';
 import AppError from '../../errorHelpers/AppError';
 import { IProduct } from './product.interface';
 import { Product } from './product.model';
+import mongoose from 'mongoose';
 
 const createProductIntoDB = async (payload: IProduct): Promise<IProduct> => {
   // Check if a product with the same title already exists to prevent duplicates
@@ -105,6 +106,11 @@ const updateProductIntoDB = async (
 
   if (!product) {
     throw new AppError(httpStatus.NOT_FOUND, 'Product not found');
+  }
+
+  // Automatically update availability based on stock changes
+  if (payload.quantityInStock !== undefined) {
+    payload.availability = payload.quantityInStock > 0;
   }
 
   // Prevent duplicate titles on update, excluding the current document

@@ -39,6 +39,13 @@ export const createProductZodSchema = z.object({
     availability: z.boolean({
       invalid_type_error: 'Availability must be a boolean',
     }).optional(),
+    quantityInStock: z
+      .number({
+        required_error: 'Stock quantity is required',
+        invalid_type_error: 'Stock quantity must be a number',
+      })
+      .int({ message: 'Stock quantity must be an integer' })
+      .min(0, { message: 'Stock quantity cannot be negative' }),
     rating: z
       .number({
         required_error: 'Rating is required',
@@ -90,6 +97,13 @@ export const updateProductZodSchema = z.object({
       .boolean({
         invalid_type_error: 'Availability must be a boolean',
       })
+      .optional(),
+    quantityInStock: z
+      .number({
+        invalid_type_error: 'Stock quantity must be a number',
+      })
+      .int({ message: 'Stock quantity must be an integer' })
+      .min(0, { message: 'Stock quantity cannot be negative' })
       .optional(),
     rating: z
       .number({
