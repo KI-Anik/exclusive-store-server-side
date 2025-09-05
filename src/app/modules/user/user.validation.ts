@@ -38,14 +38,14 @@ export const updateUserZodSchema = z.object({
             }).optional(),
         phone: z
             .string({ invalid_type_error: "phone number must be string" })
-            .regex(/^(?: \+8801\d{9} | 01\d{9})$/, {
+            .regex(/^(?:\+8801\d{9}|01\d{9})$/, {
                 message: "phone number must be valid for Bangladesh"
             }).optional(),
         role: z
-            .enum(Object.values(Role) as [string])
+            .enum([Role.USER, Role.ADMIN, Role.SUPER_ADMIN])
             .optional(),
         isActive: z
-            .enum(Object.values(IsActive) as [string])
+            .enum([IsActive.ACTIVE, IsActive.INACTIVE, IsActive.BLOCKED])
             .optional(),
         isDeleted: z
             .boolean({ invalid_type_error: "isDeleted must be true or false" })
@@ -60,5 +60,3 @@ export const updateUserZodSchema = z.object({
 
     })
 });
-
-

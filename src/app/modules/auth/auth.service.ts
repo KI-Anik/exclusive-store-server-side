@@ -1,4 +1,4 @@
-import { createNewAccessTokenWithRefreshToken, createUserToken } from './../../utils/userTokens';
+import { createNewAccessTokenWithRefreshToken, createUserToken } from '../../utils/userTokens';
 import  httpStatus  from 'http-status-codes';
 import AppError from "../../errorHelpers/AppError";
 import { IUser } from "../user/user.interface";
@@ -28,9 +28,14 @@ const credentialsLogin = async (payload : Partial<IUser>)=>{
 
     const userTokens = createUserToken(isUserExist)
 
+    // Ensure password is not sent back
+    const userObject = isUserExist.toObject();
+    delete userObject.password;
+
     return {
+        user: userObject,
         accessToken : userTokens.accessToken,
-         refreshToken: userTokens.refreshToken,
+        refreshToken: userTokens.refreshToken,
     }
 };
 

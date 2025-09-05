@@ -20,7 +20,6 @@ const updateUser = catchAsync(async (req: Request, res: Response) => {
     const userId = req.params.id
 
     const payload = req.body
-    console.log(req.body);
     const verifiedToken = req.user;
 
     if (!verifiedToken) {

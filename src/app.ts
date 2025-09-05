@@ -4,12 +4,19 @@ import express, { Request, Response } from 'express';
 import { router } from './routes';
 import globalErrorHandler from './app/middleware/globalErrorHandler';
 import notFound from './app/middleware/notFound';
+import { envVars } from './app/config/env';
 
 const app = express()
 
+app.use(
+  cors({
+    origin: envVars.FRONTEND_URL, 
+    credentials: true, // Allow cookies to be sent and received
+  }),
+);
+
 app.use(cookieParser())
 app.use(express.json())
-app.use(cors())
 
 app.use('/api/v1', router )
 

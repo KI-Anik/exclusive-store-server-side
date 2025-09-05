@@ -4,7 +4,10 @@ import 'dotenv/config'
 interface EnvConfig {
     PORT: string,
     DB_URL: string,
+    NODE_ENV: "development" | "production",
+
     BCRYPT_SALT_ROUND: string,
+    FRONTEND_URL: string,
 
     JWT_ACCESS_SECRET: string,
     JWT_ACCESS_EXPIRES: string,
@@ -22,7 +25,7 @@ interface EnvConfig {
 }
 
 const loadEnvVariables = (): EnvConfig => {
-    const requiredEnvVariables: string[] = ["PORT", "DB_URL", "BCRYPT_SALT_ROUND",
+    const requiredEnvVariables: string[] = ["PORT", "DB_URL", "NODE_ENV", "BCRYPT_SALT_ROUND", "FRONTEND_URL",
         "JWT_ACCESS_SECRET", "JWT_ACCESS_EXPIRES", "JWT_REFRESH_SECRET", "JWT_REFRESH_EXPIRES","SMTP_HOST","SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD",
         "SUPER_ADMIN_EMAIL", "SUPER_ADMIN_PASSWORD"
     ]
@@ -36,8 +39,11 @@ const loadEnvVariables = (): EnvConfig => {
     return {
         PORT: process.env.PORT as string,
         DB_URL: process.env.DB_URL as string,
-        BCRYPT_SALT_ROUND: process.env.BCRYPT_SALT_ROUND as string,
+        NODE_ENV: process.env.NODE_ENV as "development" | "production",
 
+        BCRYPT_SALT_ROUND: process.env.BCRYPT_SALT_ROUND as string,
+        FRONTEND_URL: process.env.FRONTEND_URL as string,
+        
         JWT_ACCESS_SECRET: process.env.JWT_ACCESS_SECRET as string,
         JWT_ACCESS_EXPIRES: process.env.JWT_ACCESS_EXPIRES as string,
         JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET as string,

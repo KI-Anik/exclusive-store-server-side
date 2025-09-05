@@ -48,7 +48,7 @@ const updateUser = async (userId: string, payload: Partial<IUser>, decodedToken:
         throw new AppError(httpStatus.NOT_FOUND, "user not found")
     }
 
-    //conditionals for make sure only authorized people can make this change.
+    // Conditionals for role-based authorization
     if (payload.role) {
         if (decodedToken.role === Role.USER) {
             throw new AppError(httpStatus.FORBIDDEN, "you are not authorized")
@@ -62,20 +62,22 @@ const updateUser = async (userId: string, payload: Partial<IUser>, decodedToken:
         if (payload.role === Role.SUPER_ADMIN && decodedToken.role === Role.ADMIN) {
             throw new AppError(httpStatus.FORBIDDEN, "you are not permitted")
         }
-
-        if (payload.isActive || payload.isDeleted || payload.isVerified) {
-            if (decodedToken.role === Role.USER) {
-                throw new AppError(httpStatus.FORBIDDEN, "you are not authorized")
-            }
-        }
-
-        if (payload.password) {
-            payload.password = await bcrypt.hash(payload.password, envVars.BCRYPT_SALT_ROUND)
-        }
-
-        const newUpdatedUser = await User.findByIdAndUpdate(userId, payload, { new: true, runValidators: true })
-        return newUpdatedUser
     }
+
+    // Authorization for sensitive fields
+    if (payload.isActive || payload.isDeleted || payload.isVerified) {
+        if (decodedToken.role === Role.USER) {
+            throw new AppError(httpStatus.FORBIDDEN, "you are not authorized")
+        }
+    }
+
+    // Hash password if it's being updated
+    if (payload.password) {
+        payload.password = await bcrypt.hash(payload.password, Number(envVars.BCRYPT_SALT_ROUND))
+    }
+
+    const newUpdatedUser = await User.findByIdAndUpdate(userId, payload, { new: true, runValidators: true })
+    return newUpdatedUser
 }
 
 
