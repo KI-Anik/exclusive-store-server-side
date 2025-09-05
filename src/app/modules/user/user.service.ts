@@ -1,10 +1,11 @@
 import AppError from "../../errorHelpers/AppError";
 import httpStatus from 'http-status-codes';
 import bcrypt from 'bcryptjs';
-import { IAuthProvider, IUser } from "./user.interface";
+import { IAuthProvider, IUser, Role } from "./user.interface";
 import { User } from "./user.model";
 import { envVars } from "../../config/env";
 import { sendWelcomeEmail } from "../../nodemailer/sendWelcomeEmail";
+import { JwtPayload } from "jsonwebtoken";
 
 const createUser = async (payload: Partial<IUser>) => {
     const { email, password, name, ...rest } = payload
@@ -39,6 +40,46 @@ const createUser = async (payload: Partial<IUser>) => {
     return user
 }
 
+
+const updateUser = async (userId: string, payload: Partial<IUser>, decodedToken: JwtPayload) => {
+
+    const isUserExist = await User.findById(userId)
+    if (!isUserExist) {
+        throw new AppError(httpStatus.NOT_FOUND, "user not found")
+    }
+
+    //conditionals for make sure only authorized people can make this change.
+    if (payload.role) {
+        if (decodedToken.role === Role.USER) {
+            throw new AppError(httpStatus.FORBIDDEN, "you are not authorized")
+        }
+
+        {/**
+    decodedToken = info about the signed-in user (who is making the request);
+    payload = info you want to update for another user
+     */}
+
+        if (payload.role === Role.SUPER_ADMIN && decodedToken.role === Role.ADMIN) {
+            throw new AppError(httpStatus.FORBIDDEN, "you are not permitted")
+        }
+
+        if (payload.isActive || payload.isDeleted || payload.isVerified) {
+            if (decodedToken.role === Role.USER) {
+                throw new AppError(httpStatus.FORBIDDEN, "you are not authorized")
+            }
+        }
+
+        if (payload.password) {
+            payload.password = await bcrypt.hash(payload.password, envVars.BCRYPT_SALT_ROUND)
+        }
+
+        const newUpdatedUser = await User.findByIdAndUpdate(userId, payload, { new: true, runValidators: true })
+        return newUpdatedUser
+    }
+}
+
+
+
 const getAllUsers = async () => {
     const users = await User.find({})
     const totalUsers = await User.countDocuments()
@@ -52,5 +93,6 @@ const getAllUsers = async () => {
 
 export const UserService = {
     createUser,
-    getAllUsers
+    getAllUsers,
+    updateUser
 }

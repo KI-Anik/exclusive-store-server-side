@@ -20,6 +20,6 @@ app.get('/', async(req:Request, res: Response)=>{
 })
 
 app.use(globalErrorHandler)
-app.use(notFound) //route
+app.use(notFound) //route not found
 
 export default app

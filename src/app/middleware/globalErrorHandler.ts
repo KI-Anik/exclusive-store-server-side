@@ -21,10 +21,12 @@ const globalErrorHandler = (err: any, req: Request, res: Response, next: NextFun
     }
 
     res.status(statusCode).json({
-        success: true,
+        success: false,
         message,
         errorMessage: errorMessage || undefined,
-        err
+        // It's not recommended to send the full error object in production
+        // as it can leak sensitive information.
+        // err
     })
 }
 

@@ -16,6 +16,27 @@ const createUser = catchAsync(async (req: Request, res: Response) => {
     })
 })
 
+const updateUser = catchAsync(async (req: Request, res: Response) => {
+    const userId = req.params.id
+
+    const payload = req.body
+    console.log(req.body);
+    const verifiedToken = req.user;
+
+    if (!verifiedToken) {
+        throw new Error("Unauthorized: No user token found");
+    }
+
+    const user = await UserService.updateUser(userId, payload, verifiedToken);
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "User updated successfully",
+        data: user
+    })
+})
+
 const getAllUsers = catchAsync(async(req:Request, res: Response)=>{
     const result = await UserService.getAllUsers()
 
@@ -30,5 +51,6 @@ const getAllUsers = catchAsync(async(req:Request, res: Response)=>{
 
 export const UserControllers = {
     createUser,
-    getAllUsers
+    getAllUsers,
+    updateUser
 }

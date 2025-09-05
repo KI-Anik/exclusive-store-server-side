@@ -25,9 +25,9 @@ export interface IUser {
     phone?: string,
     picture?:string,
     address?:string,
-    isDeleted?: string,
+    isDeleted?: boolean,
     isActive?: IsActive,
-    isVerfied?: boolean,
+    isVerified?: boolean,
     role: Role,
     auths: IAuthProvider[]
 }
