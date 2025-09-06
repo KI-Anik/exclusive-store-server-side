@@ -14,8 +14,9 @@ export const createUserZodSchema = z.object({
         password: z
             .string({ invalid_type_error: "password must be a string" })
             .min(6, { message: "password must be at least 6 character long" }),
-        picture: z
-            .string({invalid_type_error: "picture should be added"})
+        photoURL: z
+            .string({invalid_type_error: "photoURL should be added"})
+            .url({message: "please provide a valid photo url"})
     })
 });
 

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Types } from 'mongoose';
 
 export const createProductZodSchema = z.object({
   body: z.object({
@@ -112,5 +113,13 @@ export const updateProductZodSchema = z.object({
       .min(0, { message: 'Rating must be at least 0' })
       .max(5, { message: 'Rating must be at most 5' })
       .optional(),
+  }),
+});
+
+export const objectIdValidationSchema = z.object({
+  params: z.object({
+    id: z.string().refine((val) => Types.ObjectId.isValid(val), {
+      message: 'Invalid Product ID provided',
+    }),
   }),
 });

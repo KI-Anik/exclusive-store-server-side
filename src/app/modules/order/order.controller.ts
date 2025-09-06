@@ -17,9 +17,21 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const getAllOrders = catchAsync(async (req: Request, res: Response) => {
-  const { userId, role } = req.user!;
-  const result = await OrderServices.getAllOrdersFromDB(userId, role);
+const getOrdersForCurrentUser = catchAsync(async (req: Request, res: Response) => {
+  const { userId } = req.user!;
+  const result = await OrderServices.getOrdersForCurrentUserFromDB(userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Orders for current user retrieved successfully',
+    data: result,
+  });
+});
+
+const getAllOrdersForAdmin = catchAsync(async (req: Request, res: Response) => {
+  // This controller is for admin use only and is protected by the checkAuth middleware.
+  const result = await OrderServices.getAllOrdersForAdminFromDB();
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -31,8 +43,8 @@ const getAllOrders = catchAsync(async (req: Request, res: Response) => {
 
 const getSingleOrder = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { userId, role } = req.user!;
-  const result = await OrderServices.getSingleOrderFromDB(id, userId, role);
+  const { userId, role, email } = req.user!;
+  const result = await OrderServices.getSingleOrderFromDB(id, userId, role, email);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -62,7 +74,8 @@ const updateOrderStatus = catchAsync(async (req: Request, res: Response) => {
 
 export const OrderControllers = {
   createOrder,
-  getAllOrders,
+  getOrdersForCurrentUser,
+  getAllOrdersForAdmin,
   getSingleOrder,
   updateOrderStatus,
 };

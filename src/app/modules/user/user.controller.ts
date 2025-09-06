@@ -50,7 +50,7 @@ const updateUser = catchAsync(async (req: Request, res: Response) => {
 })
 
 const getAllUsers = catchAsync(async(req:Request, res: Response)=>{
-    const result = await UserService.getAllUsers()
+    const result = await UserService.getAllUsers(req.query)
 
     sendResponse(res, {
         statusCode: httpStatus.OK,

@@ -14,7 +14,7 @@ const userSchema = new Schema<IUser>({
     email: { type: String, required: true, unique: true },
     password: { type: String, select: false },
     phone: { type: String },
-    picture: { type: String },
+    photoURL: { type: String },
     address: { type: String },
     isDeleted: { type: Boolean, default: false },
     isActive: {

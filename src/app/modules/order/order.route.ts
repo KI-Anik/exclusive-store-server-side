@@ -16,8 +16,14 @@ router.post(
 
 router.get(
   '/',
-  checkAuth(Role.USER, Role.ADMIN, Role.SUPER_ADMIN),
-  OrderControllers.getAllOrders,
+  checkAuth(Role.USER, Role.ADMIN, Role.SUPER_ADMIN), // Any authenticated user can get their own orders
+  OrderControllers.getOrdersForCurrentUser,
+);
+
+router.get(
+  '/all', // New admin-only route
+  checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  OrderControllers.getAllOrdersForAdmin,
 );
 
 router.get(

@@ -2,23 +2,23 @@ import httpStatus from 'http-status-codes';
 import AppError from '../../errorHelpers/AppError';
 import { IProduct } from './product.interface';
 import { Product } from './product.model';
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 
 const createProductIntoDB = async (payload: IProduct): Promise<IProduct> => {
-  // Check if a product with the same title already exists to prevent duplicates
-  const existingProduct = await Product.findOne({
-    product_title: payload.product_title,
-  });
-
-  if (existingProduct) {
-    throw new AppError(
-      httpStatus.CONFLICT,
-      'A product with this title already exists.',
-    );
+  // Using a unique index on `product_title` in the schema is more robust
+  // than a manual check to prevent race conditions.
+  try {
+    const result = await Product.create(payload);
+    return result;
+  } catch (error: any) {
+    if (error.code === 11000) {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        'A product with this title already exists.',
+      );
+    }
+    throw error;
   }
-
-  const result = await Product.create(payload);
-  return result;
 };
 
 const getAllProductsFromDB = async (query: Record<string, unknown>) => {
@@ -88,7 +88,9 @@ const getAllProductsFromDB = async (query: Record<string, unknown>) => {
   };
 };
 
-const getSingleProductFromDB = async (id: string): Promise<IProduct | null> => {
+const getSingleProductFromDB = async (id: number): Promise<IProduct | null> => {
+  // Mongoose automatically casts the string `id` to an ObjectId.
+  // The `id` is validated to be a valid ObjectId string in the route handler.
   const result = await Product.findById(id);
 
   if (!result) {
@@ -102,47 +104,40 @@ const updateProductIntoDB = async (
   id: string,
   payload: Partial<IProduct>,
 ): Promise<IProduct | null> => {
-  const product = await Product.findById(id);
-
-  if (!product) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Product not found');
-  }
-
   // Automatically update availability based on stock changes
   if (payload.quantityInStock !== undefined) {
     payload.availability = payload.quantityInStock > 0;
   }
 
-  // Prevent duplicate titles on update, excluding the current document
-  if (payload.product_title) {
-    const existingProduct = await Product.findOne({
-      product_title: payload.product_title,
-      _id: { $ne: id },
+  // Rely on the unique index on `product_title` to handle duplicates,
+  // which is more efficient and avoids race conditions.
+  try {
+    const result = await Product.findByIdAndUpdate(id, payload, {
+      new: true,
+      runValidators: true,
     });
-    if (existingProduct) {
+
+    if (!result) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Product not found');
+    }
+
+    return result;
+  } catch (error: any) {
+    if (error.code === 11000) {
       throw new AppError(
         httpStatus.CONFLICT,
         'Another product with this title already exists.',
       );
     }
+    throw error;
   }
-
-  const result = await Product.findByIdAndUpdate(id, payload, {
-    new: true,
-    runValidators: true,
-  });
-
-  return result;
 };
 
 const deleteProductFromDB = async (id: string): Promise<IProduct | null> => {
-  const product = await Product.findById(id);
-
-  if (!product) {
+  const result = await Product.findByIdAndDelete(id);
+  if (!result) {
     throw new AppError(httpStatus.NOT_FOUND, 'Product not found');
   }
-
-  const result = await Product.findByIdAndDelete(id);
   return result;
 };
 

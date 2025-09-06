@@ -6,6 +6,7 @@ const productSchema = new Schema<IProduct>(
     product_title: {
       type: String,
       required: true,
+      unique: true,
       trim: true,
     },
     product_image: {

@@ -4,6 +4,7 @@ import AppError from '../../errorHelpers/AppError';
 import { Product } from '../product/product.model';
 import { IOrder, IOrderItem } from './order.interface';
 import { Order } from './order.model';
+import { IUser, Role } from '../user/user.interface';
 
 const createOrderIntoDB = async (
   userId: string,
@@ -90,9 +91,18 @@ const createOrderIntoDB = async (
   }
 };
 
-const getAllOrdersFromDB = async (userId: string, role: string) => {
-  const filter = role === 'USER' ? { userId } : {};
-  const result = await Order.find(filter)
+const getOrdersForCurrentUserFromDB = async (userId: string) => {
+  // This endpoint is for the "My Orders" page and should ALWAYS be filtered by the logged-in user.
+  const result = await Order.find({ userId })
+    .populate('userId', 'name email')
+    .populate('items.productId', 'product_title product_image category')
+    .sort('-createdAt');
+  return result;
+};
+
+const getAllOrdersForAdminFromDB = async () => {
+  // This endpoint is for the "Manage Orders" admin page and fetches all orders.
+  const result = await Order.find({})
     .populate('userId', 'name email')
     .populate('items.productId', 'product_title product_image category')
     .sort('-createdAt');
@@ -102,24 +112,28 @@ const getAllOrdersFromDB = async (userId: string, role: string) => {
 const getSingleOrderFromDB = async (
   orderId: string,
   requestingUserId: string,
-  requestingUserRole: string,
-): Promise<IOrder | null> => {
-  const filter: mongoose.FilterQuery<IOrder> = { _id: orderId };
-
-  // If the user is a regular user, they can only access their own orders.
-  if (requestingUserRole === 'USER') {
-    filter.userId = requestingUserId;
-  }
-
-  const result = await Order.findOne(filter)
-    .populate('userId', 'name email')
+  requestingUserRole: Role,
+  requestingUserEmail: string,
+): Promise<IOrder> => {
+  const order = await Order.findById(orderId)
+    .populate<{ userId: IUser }>('userId', 'name email')
     .populate('items.productId');
 
-  if (!result) {
-    // Use a generic message to avoid confirming the existence of an order ID
-    throw new AppError(httpStatus.NOT_FOUND, 'Order not found or you do not have permission to view it.');
+  if (!order) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Order not found');
   }
-  return result;
+
+  // Security check: If the user is a regular user, ensure they own the order.
+  if (
+    requestingUserRole === Role.USER &&
+    (order.userId._id.toString() !== requestingUserId ||
+      order.userId.email !== requestingUserEmail)
+  ) {
+    throw new AppError(httpStatus.FORBIDDEN, 'You do not have permission to view this order.');
+  }
+
+  // Admins can view any order.
+  return order;
 };
 
 const updateOrderStatusInDB = async (
@@ -139,7 +153,8 @@ const updateOrderStatusInDB = async (
 
 export const OrderServices = {
   createOrderIntoDB,
-  getAllOrdersFromDB,
+  getOrdersForCurrentUserFromDB,
+  getAllOrdersForAdminFromDB,
   getSingleOrderFromDB,
   updateOrderStatusInDB,
 };

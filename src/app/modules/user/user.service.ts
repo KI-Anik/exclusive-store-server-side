@@ -91,14 +91,23 @@ const updateUser = async (userId: string, payload: Partial<IUser>, decodedToken:
     return newUpdatedUser
 }
 
-const getAllUsers = async () => {
-    const users = await User.find({})
-    const totalUsers = await User.countDocuments()
+const getAllUsers = async (query: Record<string, unknown>) => {
+    const { page = 1, limit = 10 } = query;
+
+    const skip = (Number(page) - 1) * Number(limit);
+
+    const usersQuery = User.find({}).sort('-createdAt').skip(skip).limit(Number(limit));
+
+    const data = await usersQuery.exec();
+    const total = await User.countDocuments();
+
     return {
         meta: {
-            total: totalUsers
+            page: Number(page),
+            limit: Number(limit),
+            total,
         },
-        data: users,
+        data,
     }
 }
 

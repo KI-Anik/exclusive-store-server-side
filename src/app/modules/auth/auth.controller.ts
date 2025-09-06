@@ -29,16 +29,16 @@ const credentialsLogin = catchAsync(async (req: Request, res: Response) => {
 const getNewAccessToken = catchAsync(async (req: Request, res: Response) => {
     const refreshToken = req.cookies.refreshToken
     if (!refreshToken) {
-        throw new AppError(httpStatus.BAD_REQUEST, "NO refresh token received from cookies")
+        throw new AppError(httpStatus.UNAUTHORIZED, "You are not authorized")
     }
 
-    const { accessToken } = await AuthServices.getNewAccessToken(refreshToken)
+    const { accessToken, user } = await AuthServices.getNewAccessToken(refreshToken)
 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: 'new access token created',
-        data: { accessToken }
+        message: 'Access token refreshed successfully',
+        data: { accessToken, user }
     })
 })
 

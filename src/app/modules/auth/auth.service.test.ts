@@ -45,7 +45,13 @@ describe('AuthServices', () => {
   // Test suite for credentialsLogin
   describe('credentialsLogin', () => {
     it('should login a user successfully and return tokens', async () => {
-      const selectMock = jest.fn().mockResolvedValue(mockUser);
+      // The service calls `.toObject()` on the Mongoose document.
+      // We mock this behavior to ensure our test is accurate.
+      const mockMongooseUser = {
+        ...mockUser,
+        toObject: () => ({ ...mockUser }),
+      };
+      const selectMock = jest.fn().mockResolvedValue(mockMongooseUser);
       (UserMock.findOne as jest.Mock).mockReturnValue({ select: selectMock });
       (bcryptMock.compare as jest.Mock).mockResolvedValue(true);
       createUserTokenMock.mockReturnValue(mockTokens);
@@ -61,8 +67,12 @@ describe('AuthServices', () => {
         'password123',
         mockUser.password,
       );
-      expect(createUserTokenMock).toHaveBeenCalledWith(mockUser);
-      expect(result).toEqual(mockTokens);
+      expect(createUserTokenMock).toHaveBeenCalledWith(mockMongooseUser);
+
+      const expectedUserObject = { ...mockUser };
+      delete expectedUserObject.password;
+
+      expect(result).toEqual({ user: expectedUserObject, ...mockTokens });
     });
 
     it('should throw NOT_FOUND error if email does not exist', async () => {
@@ -111,15 +121,30 @@ describe('AuthServices', () => {
   // Test suite for getNewAccessToken
   describe('getNewAccessToken', () => {
     it('should return a new access token', async () => {
-      const newAccessToken = 'newMockAccessToken';
-      createNewAccessTokenWithRefreshTokenMock.mockResolvedValue(newAccessToken);
+      const userWithoutPassword = { ...mockUser };
+      delete userWithoutPassword.password;
+
+      // The service returns a Mongoose document. To satisfy TypeScript's type checking,
+      // our mock should resemble one. Adding a `toObject` method is a simple way to do this.
+      const mockMongooseUser = {
+        ...userWithoutPassword,
+        toObject: () => userWithoutPassword,
+      };
+
+      const mockRefreshResponse = {
+        accessToken: 'newMockAccessToken',
+        user: mockMongooseUser,
+      };
+      createNewAccessTokenWithRefreshTokenMock.mockResolvedValue(
+        mockRefreshResponse,
+      );
 
       const result = await AuthServices.getNewAccessToken('mockRefreshToken');
 
       expect(createNewAccessTokenWithRefreshTokenMock).toHaveBeenCalledWith(
         'mockRefreshToken',
       );
-      expect(result).toEqual({ accessToken: newAccessToken });
+      expect(result).toEqual(mockRefreshResponse);
     });
   });
 

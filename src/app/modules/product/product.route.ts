@@ -3,6 +3,7 @@ import { validateRequest } from '../../middleware/validateRequest';
 import {
   createProductZodSchema,
   updateProductZodSchema,
+  objectIdValidationSchema,
 } from './product.validation';
 import { ProductControllers } from './product.controller';
 import { checkAuth } from '../../middleware/checkAuth';
@@ -20,18 +21,22 @@ router.post(
 
 router.get('/', ProductControllers.getAllProducts);
 
-router.get('/:id', ProductControllers.getSingleProduct);
+router.get(
+  '/:id',
+  ProductControllers.getSingleProduct,
+);
 
 router.patch(
   '/:id',
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
-  validateRequest(updateProductZodSchema),
+  validateRequest(updateProductZodSchema.merge(objectIdValidationSchema)),
   ProductControllers.updateProduct,
 );
 
 router.delete(
   '/:id',
   checkAuth(Role.ADMIN, Role.SUPER_ADMIN),
+  validateRequest(objectIdValidationSchema),
   ProductControllers.deleteProduct,
 );
 
