@@ -42,6 +42,7 @@ describe('ProductServices', () => {
         specification: ['12.4-inch display', '8GB RAM'],
         availability: true,
         rating: 4.8,
+        quantityInStock: 10,
     };
     afterEach(() => {
         jest.clearAllMocks();
@@ -68,37 +69,31 @@ describe('ProductServices', () => {
     });
     describe('getAllProductsFromDB', () => {
         it('should retrieve all products with default pagination and sorting', () => __awaiter(void 0, void 0, void 0, function* () {
-            const mockExec = jest.fn().mockResolvedValue([mockProduct]);
-            const mockSort = jest.fn().mockReturnThis();
-            const mockSkip = jest.fn().mockReturnThis();
-            const mockLimit = jest.fn().mockReturnThis();
-            ProductMock.find.mockReturnValue({
-                sort: mockSort,
-                skip: mockSkip,
-                limit: mockLimit,
-                exec: mockExec,
-            });
+            const mockQuery = {
+                sort: jest.fn().mockReturnThis(),
+                skip: jest.fn().mockReturnThis(),
+                limit: jest.fn().mockReturnThis(),
+                exec: jest.fn().mockResolvedValue([mockProduct]),
+            };
+            ProductMock.find.mockReturnValue(mockQuery);
             ProductMock.countDocuments.mockResolvedValue(1);
             const result = yield product_service_1.ProductServices.getAllProductsFromDB({});
             expect(ProductMock.find).toHaveBeenCalledWith({});
-            expect(mockSort).toHaveBeenCalledWith('-createdAt');
-            expect(mockSkip).toHaveBeenCalledWith(0);
-            expect(mockLimit).toHaveBeenCalledWith(10);
-            expect(mockExec).toHaveBeenCalled();
+            expect(mockQuery.sort).toHaveBeenCalledWith('-createdAt');
+            expect(mockQuery.skip).toHaveBeenCalledWith(0);
+            expect(mockQuery.limit).toHaveBeenCalledWith(10);
+            expect(mockQuery.exec).toHaveBeenCalled();
             expect(result.data).toEqual([mockProduct]);
             expect(result.meta.total).toBe(1);
         }));
         it('should handle search, filter, and sort parameters', () => __awaiter(void 0, void 0, void 0, function* () {
-            const mockExec = jest.fn().mockResolvedValue([]);
-            const mockSort = jest.fn().mockReturnThis();
-            const mockSkip = jest.fn().mockReturnThis();
-            const mockLimit = jest.fn().mockReturnThis();
-            ProductMock.find.mockReturnValue({
-                sort: mockSort,
-                skip: mockSkip,
-                limit: mockLimit,
-                exec: mockExec,
-            });
+            const mockQuery = {
+                sort: jest.fn().mockReturnThis(),
+                skip: jest.fn().mockReturnThis(),
+                limit: jest.fn().mockReturnThis(),
+                exec: jest.fn().mockResolvedValue([]),
+            };
+            ProductMock.find.mockReturnValue(mockQuery);
             ProductMock.countDocuments.mockResolvedValue(0);
             const query = {
                 searchTerm: 'Galaxy',
@@ -113,7 +108,7 @@ describe('ProductServices', () => {
                 category: 'Samsung',
                 price: { $gte: 500, $lte: 700 },
             }));
-            expect(mockSort).toHaveBeenCalledWith('price');
+            expect(mockQuery.sort).toHaveBeenCalledWith('price');
         }));
     });
     describe('getSingleProductFromDB', () => {
@@ -145,6 +140,18 @@ describe('ProductServices', () => {
         it('should throw a Not Found error if product to update is not found', () => __awaiter(void 0, void 0, void 0, function* () {
             ProductMock.findById.mockResolvedValue(null);
             yield expect(product_service_1.ProductServices.updateProductIntoDB('non-existent-id', updatePayload)).rejects.toThrow(new AppError_1.default(http_status_codes_1.default.NOT_FOUND, 'Product not found'));
+        }));
+        it('should update availability to false when quantityInStock is set to 0', () => __awaiter(void 0, void 0, void 0, function* () {
+            const stockUpdatePayload = { quantityInStock: 0 };
+            // The service should automatically set availability to false
+            const expectedPayloadInUpdate = { quantityInStock: 0, availability: false };
+            const productAfterUpdate = Object.assign(Object.assign({}, mockProduct), expectedPayloadInUpdate);
+            ProductMock.findById.mockResolvedValue(mockProduct);
+            ProductMock.findByIdAndUpdate.mockResolvedValue(productAfterUpdate);
+            const result = yield product_service_1.ProductServices.updateProductIntoDB('some-id', stockUpdatePayload);
+            expect(ProductMock.findById).toHaveBeenCalledWith('some-id');
+            expect(ProductMock.findByIdAndUpdate).toHaveBeenCalledWith('some-id', expectedPayloadInUpdate, { new: true, runValidators: true });
+            expect(result).toEqual(productAfterUpdate);
         }));
     });
     describe('deleteProductFromDB', () => {

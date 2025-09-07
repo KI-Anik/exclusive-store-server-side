@@ -11,7 +11,7 @@ jest.mock('./product.model');
 const ProductMock = Product as jest.Mocked<typeof Product>;
 
 describe('ProductServices', () => {
-  const mockProduct = {
+  const mockProduct: IProduct = {
     _id: new Types.ObjectId(),
     product_title: 'Galaxy Tab S8+',
     product_image: 'https://example.com/image.jpg',
@@ -21,6 +21,7 @@ describe('ProductServices', () => {
     specification: ['12.4-inch display', '8GB RAM'],
     availability: true,
     rating: 4.8,
+    quantityInStock: 10,
   };
 
   afterEach(() => {
@@ -55,43 +56,35 @@ describe('ProductServices', () => {
   });
   describe('getAllProductsFromDB', () => {
     it('should retrieve all products with default pagination and sorting', async () => {
-      const mockExec = jest.fn().mockResolvedValue([mockProduct]);
-      const mockSort = jest.fn().mockReturnThis();
-      const mockSkip = jest.fn().mockReturnThis();
-      const mockLimit = jest.fn().mockReturnThis();
-
-      ProductMock.find.mockReturnValue({
-        sort: mockSort,
-        skip: mockSkip,
-        limit: mockLimit,
-        exec: mockExec,
-      } as any);
+      const mockQuery = {
+        sort: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        exec: jest.fn().mockResolvedValue([mockProduct]),
+      };
+      (ProductMock.find as jest.Mock).mockReturnValue(mockQuery);
 
       (ProductMock.countDocuments as jest.Mock).mockResolvedValue(1);
 
       const result = await ProductServices.getAllProductsFromDB({});
 
       expect(ProductMock.find).toHaveBeenCalledWith({});
-      expect(mockSort).toHaveBeenCalledWith('-createdAt');
-      expect(mockSkip).toHaveBeenCalledWith(0);
-      expect(mockLimit).toHaveBeenCalledWith(10);
-      expect(mockExec).toHaveBeenCalled();
+      expect(mockQuery.sort).toHaveBeenCalledWith('-createdAt');
+      expect(mockQuery.skip).toHaveBeenCalledWith(0);
+      expect(mockQuery.limit).toHaveBeenCalledWith(10);
+      expect(mockQuery.exec).toHaveBeenCalled();
       expect(result.data).toEqual([mockProduct]);
       expect(result.meta.total).toBe(1);
     });
 
     it('should handle search, filter, and sort parameters', async () => {
-        const mockExec = jest.fn().mockResolvedValue([]);
-        const mockSort = jest.fn().mockReturnThis();
-        const mockSkip = jest.fn().mockReturnThis();
-        const mockLimit = jest.fn().mockReturnThis();
-
-        ProductMock.find.mockReturnValue({
-          sort: mockSort,
-          skip: mockSkip,
-          limit: mockLimit,
-          exec: mockExec,
-        } as any);
+        const mockQuery = {
+          sort: jest.fn().mockReturnThis(),
+          skip: jest.fn().mockReturnThis(),
+          limit: jest.fn().mockReturnThis(),
+          exec: jest.fn().mockResolvedValue([]),
+        };
+        (ProductMock.find as jest.Mock).mockReturnValue(mockQuery);
 
         (ProductMock.countDocuments as jest.Mock).mockResolvedValue(0);
 
@@ -110,7 +103,7 @@ describe('ProductServices', () => {
           category: 'Samsung',
           price: { $gte: 500, $lte: 700 },
         }));
-        expect(mockSort).toHaveBeenCalledWith('price');
+        expect(mockQuery.sort).toHaveBeenCalledWith('price');
       });
   });
 
@@ -153,6 +146,26 @@ describe('ProductServices', () => {
       await expect(ProductServices.updateProductIntoDB('non-existent-id', updatePayload)).rejects.toThrow(
         new AppError(httpStatus.NOT_FOUND, 'Product not found'),
       );
+    });
+
+    it('should update availability to false when quantityInStock is set to 0', async () => {
+      const stockUpdatePayload = { quantityInStock: 0 };
+      // The service should automatically set availability to false
+      const expectedPayloadInUpdate = { quantityInStock: 0, availability: false };
+      const productAfterUpdate = { ...mockProduct, ...expectedPayloadInUpdate };
+
+      (ProductMock.findById as jest.Mock).mockResolvedValue(mockProduct);
+      (ProductMock.findByIdAndUpdate as jest.Mock).mockResolvedValue(productAfterUpdate);
+
+      const result = await ProductServices.updateProductIntoDB('some-id', stockUpdatePayload);
+
+      expect(ProductMock.findById).toHaveBeenCalledWith('some-id');
+      expect(ProductMock.findByIdAndUpdate).toHaveBeenCalledWith(
+        'some-id',
+        expectedPayloadInUpdate,
+        { new: true, runValidators: true },
+      );
+      expect(result).toEqual(productAfterUpdate);
     });
   });
 
