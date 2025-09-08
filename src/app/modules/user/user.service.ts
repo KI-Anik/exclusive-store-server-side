@@ -4,6 +4,7 @@ import bcrypt from 'bcryptjs';
 import { IAuthProvider, IUser } from "./user.interface";
 import { User } from "./user.model";
 import { envVars } from "../../config/env";
+import { sendWelcomeEmail } from "../../nodemailer/sendWelcomeEmail";
 
 const createUser = async (payload: Partial<IUser>) => {
     const { email, password, ...rest } = payload
@@ -26,6 +27,13 @@ const createUser = async (payload: Partial<IUser>) => {
         auths: [authProvider],
         ...rest
     })
+
+    // nodemailer 
+     if (user.email && user.name) {
+        sendWelcomeEmail(user.email, user.name)
+            .catch(err => console.error(`Failed to send welcome email to ${user.email}`, err));
+    }
+
     return user
 }
 

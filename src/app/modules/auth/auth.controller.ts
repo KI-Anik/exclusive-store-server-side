@@ -37,9 +37,31 @@ console.log('refrsh token', refreshToken);
         message: 'new access token created',
         data: tokenInfo
     })
-})
+});
+
+const logOut = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    res.clearCookie("accessToken", {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax"
+    })
+
+    res.clearCookie("refreshToken", {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax"
+    })
+
+    sendResponse(res, {
+        statusCode: 201,
+        success: true,
+        message: "successfully logged out",
+        data: null
+    })
+});
 
 export const AuthControllers = {
     credentialsLogin,
-    getNewAccessToken
+    getNewAccessToken,
+    logOut
 };
