@@ -3,7 +3,7 @@ import cookieParser from 'cookie-parser';
 import express, { Request, Response } from 'express';
 import { router } from './routes';
 import { globalErrorHandler } from './app/middleware/globalErrorHandler';
-import notFound from './app/middleware/notFound';
+import notFoundRoute from './app/middleware/notFoundRoute';
 
 const app = express()
 
@@ -20,6 +20,6 @@ app.get('/', async(req:Request, res: Response)=>{
 })
 
 app.use(globalErrorHandler)
-app.use(notFound)
+app.use(notFoundRoute)
 
 export default app

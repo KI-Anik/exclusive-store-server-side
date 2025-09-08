@@ -1,12 +1,13 @@
 import httpStatus from 'http-status-codes';
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import { catchAsync } from "../../utils/catchAsync";
-import { authServices } from "./auth.service";
+import { AuthServices } from "./auth.service";
 import { setAuthCookie } from "../../utils/setCookie";
 import { sendResponse } from "../../utils/sendResponse";
+import AppError from '../../errorHelpers/AppError';
 
-const credentialsLogin = catchAsync(async (req: Request, res: Response) => {
-    const loginInfo = await authServices.credentialsLogin(req.body)
+const credentialsLogin = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const loginInfo = await AuthServices.credentialsLogin(req.body)
 
     setAuthCookie(res, loginInfo)
 
@@ -16,8 +17,29 @@ const credentialsLogin = catchAsync(async (req: Request, res: Response) => {
         message: 'Login successful',
         data: loginInfo
     })
+});
+
+const getNewAccessToken = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
+    const refreshToken = req.cookies.refreshToken
+console.log('refrsh token', refreshToken);
+
+    if (!refreshToken) {
+        throw new AppError(httpStatus.BAD_REQUEST, "NO refresh token received from cookies")
+    }
+
+    const tokenInfo = await AuthServices.getNewAccessToken(refreshToken)
+
+    setAuthCookie(res, tokenInfo) // storing token in browser cookies
+
+    sendResponse(res, {
+        statusCode: httpStatus.ACCEPTED,
+        success: true,
+        message: 'new access token created',
+        data: tokenInfo
+    })
 })
 
-export const authControllers = {
-    credentialsLogin
-}
+export const AuthControllers = {
+    credentialsLogin,
+    getNewAccessToken
+};
