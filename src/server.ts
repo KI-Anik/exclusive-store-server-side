@@ -62,5 +62,4 @@ process.on('SIGINT', (err)=>{
     process.exit(1)
 });
 
-project-setup
 startServer()

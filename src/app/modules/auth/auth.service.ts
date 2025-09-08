@@ -8,26 +8,27 @@ import bcrypt from 'bcryptjs';
 const credentialsLogin = async (payload : Partial<IUser>)=>{
     const {email, password} = payload
 
-    // Explicitly select the password field, which is excluded by default
-    const isUserExist = await User.findOne({email}).select('+password')
+    const isUserExist = await User.findOne({email})
     if(!isUserExist){
         throw new AppError(httpStatus.NOT_FOUND, "Email doesn't exist")
     }
 
-    if (!isUserExist.password) {
-        // handles users that were created without a password (e.g. social login)
-        throw new AppError(httpStatus.FORBIDDEN, "DB - password not found")
-    }
-
-    const isPasswordMatched = await bcrypt.compare(password!, isUserExist.password)
+    const isPasswordMatched = await bcrypt.compare(password!, isUserExist?.password as string)
     if(!isPasswordMatched){
         throw new AppError(httpStatus.FORBIDDEN, "Incorrect password")
     }
 
-    const userTokens = createUserToken(isUserExist)
+
+     const userTokens = createUserToken(isUserExist)
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: pass, ...rest } = isUserExist.toObject()
+    //removed password from response/frontend
 
     return {
-        accessToken : userTokens.accessToken,
+        accessToken: userTokens.accessToken,
+        refreshToken: userTokens.refreshToken,
+        user: rest
     }
 }
 
