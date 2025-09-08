@@ -1,4 +1,4 @@
-import { createUserToken } from './../../utils/userTokens';
+import { createNewAccessTokenWithRefreshToken, createUserToken } from './../../utils/userTokens';
 import  httpStatus  from 'http-status-codes';
 import AppError from "../../errorHelpers/AppError";
 import { IUser } from "../user/user.interface";
@@ -18,7 +18,6 @@ const credentialsLogin = async (payload : Partial<IUser>)=>{
         throw new AppError(httpStatus.FORBIDDEN, "Incorrect password")
     }
 
-
      const userTokens = createUserToken(isUserExist)
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -30,8 +29,19 @@ const credentialsLogin = async (payload : Partial<IUser>)=>{
         refreshToken: userTokens.refreshToken,
         user: rest
     }
+};
+
+const getNewAccessToken = async (refreshToken: string) => {
+    console.log('auth service', refreshToken);
+    
+    const newAccessToken = await createNewAccessTokenWithRefreshToken(refreshToken)
+
+    return {
+        accessToken: newAccessToken
+    }
 }
 
-export const authServices ={
-    credentialsLogin
+export const AuthServices ={
+    credentialsLogin,
+    getNewAccessToken
 }
