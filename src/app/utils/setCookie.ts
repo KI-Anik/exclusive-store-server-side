@@ -6,7 +6,6 @@ interface IAuthToken {
 }
 
 export const setAuthCookie = (res: Response, tokenInfo: IAuthToken) => {
-    console.log('token info', tokenInfo);
     if (tokenInfo.accessToken) {
         res.cookie("accessToken", tokenInfo.accessToken, {
             httpOnly: true,

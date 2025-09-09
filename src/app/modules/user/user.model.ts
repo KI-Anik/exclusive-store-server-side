@@ -1,6 +1,5 @@
 import { model, Schema } from "mongoose";
 import { IAuthProvider, IsActive, IUser, Role } from "./user.interface";
-import { boolean } from "zod";
 
 const authProviderSchema = new Schema<IAuthProvider>({
     provider: { type: String, required: true },
@@ -15,7 +14,7 @@ const userSchema = new Schema<IUser>({
     email: { type: String, required: true, unique: true },
     password: { type: String },
     phone: { type: String },
-    picture: { type: String },
+    photo: { type: String },
     address: { type: String },
     isDeleted: { type: Boolean, default: false },
     isActive: {

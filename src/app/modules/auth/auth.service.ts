@@ -13,7 +13,7 @@ const credentialsLogin = async (payload : Partial<IUser>)=>{
         throw new AppError(httpStatus.NOT_FOUND, "Email doesn't exist")
     }
 
-    const isPasswordMatched = await bcrypt.compare(password!, isUserExist?.password as string)
+    const isPasswordMatched = await bcrypt.compare(password as string, isUserExist?.password as string)
     if(!isPasswordMatched){
         throw new AppError(httpStatus.FORBIDDEN, "Incorrect password")
     }
@@ -32,7 +32,6 @@ const credentialsLogin = async (payload : Partial<IUser>)=>{
 };
 
 const getNewAccessToken = async (refreshToken: string) => {
-    console.log('auth service', refreshToken);
     
     const newAccessToken = await createNewAccessTokenWithRefreshToken(refreshToken)
 
