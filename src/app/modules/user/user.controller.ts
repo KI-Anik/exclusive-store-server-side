@@ -1,12 +1,17 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import httpStatus from 'http-status-codes';
 import { NextFunction, Request, Response } from "express";
 import { catchAsync } from "../../utils/catchAsync";
 import { UserService } from "./user.service";
 import { sendResponse } from "../../utils/sendResponse";
+import { setAuthCookie } from '../../utils/setCookie';
 
 
 const createUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     const user = await UserService.createUser(req.body)
+
+    //  REGISTER USER GET LOGIN AUTOMATICALLY
+    // setAuthCookie(res, user);
 
     sendResponse(res, {
         statusCode: httpStatus.CREATED,

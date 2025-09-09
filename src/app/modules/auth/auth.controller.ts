@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import httpStatus from 'http-status-codes';
 import { NextFunction, Request, Response } from "express";
 import { catchAsync } from "../../utils/catchAsync";
@@ -21,7 +22,6 @@ const credentialsLogin = catchAsync(async (req: Request, res: Response, next: Ne
 
 const getNewAccessToken = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
     const refreshToken = req.cookies.refreshToken
-console.log('refrsh token', refreshToken);
 
     if (!refreshToken) {
         throw new AppError(httpStatus.BAD_REQUEST, "NO refresh token received from cookies")

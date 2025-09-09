@@ -33,10 +33,8 @@ export const createUserToken = (user: Partial<IUser>) => {
 
 export const createNewAccessTokenWithRefreshToken = async (refreshToken : string) =>{
      const verifiedToken = verifyToken(refreshToken, envVars.JWT_REFRESH_SECRET) as JwtPayload
-     console.log(verifiedToken, 'usertoken');
 
     const isUserExist = await User.findOne({ email: verifiedToken.email })
-    console.log('is user exist', isUserExist);
     if (!isUserExist) {
         throw new AppError(httpStatus.NOT_FOUND, "User does not exist")
     }

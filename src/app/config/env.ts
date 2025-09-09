@@ -18,12 +18,14 @@ interface EnvConfig {
     SMTP_PORT: string,
     SMTP_USER: string,
     SMTP_PASSWORD: string,
+
+    FRONTEND_URL: string,
 }
 
 const loadEnvVariables = (): EnvConfig => {
     const requiredEnvVariables: string[] = ["PORT", "DB_URL", "BCRYPT_SALT_ROUND",
         "JWT_ACCESS_SECRET", "JWT_ACCESS_EXPIRES", "JWT_REFRESH_EXPIRES", "JWT_REFRESH_SECRET", "SUPER_ADMIN_EMAIL", "SUPER_ADMIN_PASSWORD",
-        "SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD",
+        "SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASSWORD", "FRONTEND_URL"
     ]
 
     requiredEnvVariables.forEach(key => {
@@ -49,6 +51,8 @@ const loadEnvVariables = (): EnvConfig => {
         SMTP_PORT: process.env.SMTP_PORT as string,
         SMTP_USER: process.env.SMTP_USER as string,
         SMTP_PASSWORD: process.env.SMTP_PASSWORD as string,
+
+        FRONTEND_URL: process.env.FRONTEND_URL as string,
     }
 }
 

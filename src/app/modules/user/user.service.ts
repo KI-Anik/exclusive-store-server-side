@@ -34,6 +34,20 @@ const createUser = async (payload: Partial<IUser>) => {
             .catch(err => console.error(`Failed to send welcome email to ${user.email}`, err));
     }
 
+    /***
+     * REGISTER USER GET LOGIN AUTOMATICALLY
+     * 
+     *   const userTokens = createUserToken(user);
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { password: _, ...userWithoutPassword } = user.toObject();
+
+    return {
+        ...userTokens,
+        user: userWithoutPassword,
+    };
+     */
+
     return user
 }
 

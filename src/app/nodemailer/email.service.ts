@@ -27,6 +27,5 @@ export const sendEmail = async (options: MailOptions) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('Message sent: %s', info.messageId);
     return info;
 };
